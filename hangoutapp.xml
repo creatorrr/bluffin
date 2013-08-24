@@ -1,0 +1,118 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<Module>
+
+  <!-- Set preferences for app -->
+  <ModulePrefs title="Keep Bluffin">
+    <Require feature="rpc" />
+    <Require feature="views" />
+    <Require feature="locked-domain" />
+  </ModulePrefs>
+
+  <!-- Begin app logic -->
+  <Content type="html">
+    <![CDATA[
+    <html>
+      <head>
+        <script src="//plus.google.com/hangouts/_/api/v1/hangout.js"></script>
+        <script src="//cdnjs.cloudflare.com/ajax/libs/thorax/2.0.0rc6/thorax.js"></script>
+
+        <!-- App logic -->
+        <script type="text/javascript">
+          // App module
+          (function($, _, Thorax, Backbone){
+            var app, Card, Deck, forward;
+
+            // Tidy up the gapi events interface
+            forward = function(self) {
+              if(!self) self = this;
+
+              var capitalize = function(str) {
+                return str[0].toUpperCase() + _.rest(str).join('');
+              }
+
+              return {
+                on: function(name, fn) {
+                  self['on'+capitalize(name)].add(fn);
+                },
+
+                off: function(name, fn) {
+                  self['on'+capitalize(name)].remove(fn);
+                }
+              }
+            }
+
+            // App namespace
+            app = _.extend({
+              hangout: _.extend(gapi.hangout, forward(gapi.hangout)),
+              data: gapi.hangout.data,
+
+              state: {}   // For storing app state
+            }, Backbone.Events);
+
+            // Define a Card Model
+            Card = Thorax.Model.extend({});
+
+            // Define Deck;
+            Deck = Thorax.Collection.extend({
+              model: Card,
+
+              // Distribute deck among players
+              distribute: function(players) {
+                var shuffled, sets, slice;
+
+                shuffled = this.shuffle();
+                sets = [];
+
+                slice = shuffled.length / players;
+
+                for(var i = 0; i < shuffled.length; i += slice)
+                  sets.push(shuffled.slice(i, i + slice);
+
+                return sets;
+              }
+            });
+
+            // Initialize a deck.
+            app.deck = new Deck();
+            app.deck.add((function(){
+              var i, j, suites, ranks, cards;
+
+              suites = ['hearts', 'spades', 'diamonds', 'clubs'];
+              ranks = ['A', 2, 3, 4, 5, 6, 7, 8, 9, 10, 'J', 'Q', 'K'];
+
+              cards = [];
+
+              // Add all 52 cards
+              for (i = 0; i < suites.length; i++)
+                for (j = 0; i < ranks.length; j++)
+                  cards.push({
+                    rank: ranks[j],
+                    suite: suites[i]
+                  });
+
+              return cards;
+            })());
+
+            // Init
+            $(function(){
+              app.hangout.on('apiReady', function(){
+
+                // Do stuff here
+
+              });
+            });
+
+          }).call(this, jQuery, _, Thorax, Backbone);
+        </script>
+      </head>
+
+      <body>
+      </body>
+
+    </html>
+    ]]>
+  </Content>
+
+</Module>
+
