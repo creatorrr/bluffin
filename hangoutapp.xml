@@ -21,7 +21,7 @@
         <script type="text/javascript">
           // App module
           (function($, _, Thorax, Backbone){
-            var app, Card, Deck, forwardEvents, rewriteDataInterface;
+          var app, Card, Deck, forwardEvents, rewriteDataInterface, rewriteSync, Players, Player;
 
             // Tidy up the gapi events interface
             forwardEvents = function(self) {
@@ -48,7 +48,7 @@
 
               return {
                 clear: function(key) {
-                  if(key != null) {
+                  if(key !== void 0) {
                     // Simply forward function call
                     return self.clearValue( key );
 
@@ -73,6 +73,7 @@
                 set: function(key, value) {
                   if(Object(key) === key) {
                     for(var k in key) self.setValue( k, key[k] );
+                    return true;
 
                   } else {
                     return self.getValue( key, value );
@@ -89,10 +90,86 @@
               state: {}   // For storing app state
             }, Backbone.Events);
 
+            // Rewrite Backbone Sync
+            (rewriteSync = function(Backbone, store) {
+
+              // Cache a reference to original sync function
+              Backbone.ajaxSync = Backbone.sync;
+
+              // Rewrite sync to use local state cache
+              Backbone.sync = function(method, model, options) {
+                var key, isCollection, url, resp, data, errorMessage;
+
+                options || options = {};
+                url = options.url || _.result(model, 'url');
+
+                if(model instanceof Backbone.Model) {
+                  key = _.first(url.split('/'));
+
+                } else {
+                  // Get collection endpoint
+                  key = url;
+                  isCollection = true;
+                }
+
+                try {
+                  switch (method) {
+                    case 'read':
+                      resp = state[key];
+
+                      // Lookup model
+                      if(!isCollection)
+                        resp = _.findWhere(resp, {id: model.id});
+
+                      break;
+
+                    case 'create':
+                    case 'update':
+                      data = model.toJSON();
+
+                      if(isCollection) {
+                        // Add to shared state and then make a local copy
+                        app.data.set(key, data) && state[key] = data;
+
+                      } else {
+                        var coll = app.data.get(key) || [];
+
+                        // Append data to collection and save it
+                        coll.push(data);
+                        app.data.set(key, coll) && app.state[key] = coll;
+                      }
+
+                      // Generate response
+                      resp = coll;
+                      break;
+
+                    case 'delete':
+                      app.data.clear(key);
+                      delete app.state[key];
+
+                      resp = true;
+                      break;
+                  }
+                } catch(error) {
+                  // Twiddle thumbs for a bit
+                  errorMessage = error.message || 'Storage error';
+                }
+
+                // Send response
+                if(resp && options.success)
+                  _.defer(options.success, resp);
+
+                else if(errorMessage && options.error)
+                  _.defer(options.error, errorMessage);
+
+                return resp || errorMessage;
+              }
+            })(Backbone, app.state);
+
             // Define a Card Model
             Card = Thorax.Model.extend({});
 
-            // Define Deck;
+            // Define Deck
             Deck = Thorax.Collection.extend({
               model: Card,
 
@@ -133,9 +210,74 @@
               return cards;
             })());
 
+            // Define player model
+            Player = Throax.Model.extend({
+              isMaster: function() {
+                return this.id = app.state['master'];
+              }
+            });
+
+            Players = Thorax.Collection.extend({
+              model: Player,
+              getMaster: function() {
+                return this.find(function(model) { return model.isMaster() });
+              }
+            });
+
             // Init
             $(function(){
+              // Initialize local player
+              app.me = new Player();
+              app.players = new Players()
+
+              // Set up app
               app.hangout.on('apiReady', function(){
+
+                // Send and receive messages
+                app.data.on('messageReceived', function(message) {
+                  // Parse message
+                  message = JSON.parse(message) || message;
+
+                  // If not addressed to any id, then broadcast.
+                  if(!(var to = _.result(message, 'to'))) {
+                    app.trigger('broadcast:received', message);
+
+                  } else if(to == app.me.id) {
+                    app.trigger('message:received', message);
+                  }
+                });
+
+                app.on('message:send', function(id, message) {
+                  // Add metadata
+                  if(Object(message) === message) {
+                    message.to = id;
+                    message.from = app.me.id;
+                  }
+
+                  app.data.sendMessage(JSON.stringify(message));
+                });
+
+                app.on('broadcast:send', function(message) {
+                  app.data.sendMessage(JSON.stringify(message));
+                }
+
+                // Auto update internal state
+                app.data.on('stateChanged', function(e) {
+                  app.state = _.clone(e.state);
+                  app.trigger('state:change', app.state);
+                }
+
+                app.on('state:refresh', function() {
+                  app.state = _.clone(app.data.getState());
+                });
+
+                // Add local players
+                app.me.set(app.hangout.getLocalParticipant());
+
+                app.players.reset(app.hangout.getEnabledParticipants());
+                app.hangout.on('participantsEnabled', function(participants) {
+                  app.players.reset(participants);
+                });
 
                 // Do stuff here
 
@@ -222,6 +364,9 @@
 
           .card:hover {
             cursor: pointer;
+
+            -webkit-box-shadow: 1px 1px 7px rgba(0,0,0,0.4);
+            box-shadow: 1px 1px 7px rgba(0,0,0,0.4);
           }
         </style>
       </head>
