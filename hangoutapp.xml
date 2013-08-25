@@ -212,6 +212,12 @@
 
             // Define player model
             Player = Throax.Model.extend({
+              defaults: function(){
+                return {
+                  addedAt: new Date().getTime()
+                };
+              },
+
               isMaster: function() {
                 return this.id = app.state['master'];
               }
@@ -219,6 +225,8 @@
 
             Players = Thorax.Collection.extend({
               model: Player,
+              comparator: function(player) { return player.get('addedAt'); },
+
               getMaster: function() {
                 return this.find(function(model) { return model.isMaster() });
               }
@@ -292,6 +300,7 @@
                 });
 
                 // Set master
+                setMaster();
                 app.hangout.on('participantsChanged', _.once(setMaster));
 
                 // Do stuff here
@@ -301,14 +310,19 @@
 
           }).call(this, jQuery, _, Thorax, Backbone);
         </script>
-        <style type="text/css"
+
+        <!-- Google fonts: 'Megrim', 'Bangers' -->
+        <link href='http://fonts.googleapis.com/css?family=Bangers|Megrim' rel='stylesheet' type='text/css'/>
+
+        <style type="text/css">
           * {margin: 0; padding: 0;}
 
           body {
             background: #00a651;
           }
 
-          /* Card styles (Copied shamelessly from http://designshack.net/articles/css/css-card-tricks/) */
+          /* Begin: Card styles */
+          /* (Copied shamelessly from http://designshack.net/articles/css/css-card-tricks/) */
           .hand:before,
           .hand:after {
             content:"";
@@ -383,6 +397,121 @@
             -webkit-box-shadow: 1px 1px 7px rgba(0,0,0,0.4);
             box-shadow: 1px 1px 7px rgba(0,0,0,0.4);
           }
+
+          .spread-container {
+            overflow-x: auto;
+            overflow-y: hidden;
+            width: auto;
+            white-space: nowrap;  /* Expand horizontally instead of wrapping around */
+            padding-right: 135px;  /* Dirty hack, look away :( */
+          }
+
+
+          /* SPREAD */
+          .spread {
+            width: 20px;
+            height: 148px;
+            position: relative;
+          }
+
+          .spread > .card {
+            position: absolute;
+            top: 0;
+            left: 0;
+            -webkit-transition: left 0.3s ease;
+            -moz-transition: top 0.3s ease, left 0.3s ease;
+            -o-transition: top 0.3s ease, left 0.3s ease;
+            -ms-transition: top 0.3s ease, left 0.3s ease;
+            transition: top 0.3s ease, left 0.3s ease;
+          }
+
+          .spread:hover .suitdiamonds {
+            left: 0px;
+          }
+
+          .spread:hover .suithearts {
+            left: 30px;
+          }
+
+          .spread:hover .suitclubs {
+            left: 60px;
+          }
+
+          .spread:hover .suitspades{
+            left: 90px;
+          }
+
+          .spread > .card:hover {
+            -webkit-box-shadow: 1px 1px 7px rgba(0,0,0,0.4);
+            box-shadow: 1px 1px 7px rgba(0,0,0,0.4);
+          }
+
+          /*selected*/
+          .selected.card {
+            -webkit-transition: all 0.2s ease;
+            -moz-transition: all 0.2s ease;
+            -o-transition: all 0.2s ease;
+            -ms-transition: all 0.2s ease;
+            transition: all 0.2s ease;
+
+            -webkit-box-shadow: 1px 1px 7px rgba(0,0,0,0.9);
+            box-shadow: 1px 1px 7px rgba(0,0,0,0.9);
+
+            -webkit-transform: translateY(-30px);
+            -moz-transform: translateY(-30px);
+            -o-transform: translateY(-30px);
+            -ms-transform: translateY(-30px);
+            transform: translateY(-30px);
+          }
+          /* End: Card styles */
+
+          /* Begin: Spinner */
+          .spinner {
+            height: 60px;
+            width: 60px;
+            margin: 0 auto;
+            position: relative;
+            -webkit-animation: rotation .6s infinite linear;
+            -moz-animation: rotation .6s infinite linear;
+            -o-animation: rotation .6s infinite linear;
+            animation: rotation .6s infinite linear;
+            border: 6px solid rgba(0,239,174,.15); /* Light green */
+            border-radius: 100%;
+          }
+
+          .spinner:before {
+            content: "";
+            display: block;
+            position: absolute;
+            left: -6px;
+            top: -6px;
+            height: 100%;
+            width: 100%;
+            border-top: 6px solid rgba(0,239,174,.8); /* Green */
+            border-left: 6px solid transparent;
+            border-bottom: 6px solid transparent;
+            border-right: 6px solid transparent;
+            border-radius: 100%;
+          }
+
+          @-webkit-keyframes rotation {
+            from {-webkit-transform: rotate(0deg);}
+            to {-webkit-transform: rotate(359deg);}
+          }
+          @-moz-keyframes rotation {
+            from {-moz-transform: rotate(0deg);}
+            to {-moz-transform: rotate(359deg);}
+          }
+          @-o-keyframes rotation {
+            from {-o-transform: rotate(0deg);}
+            to {-o-transform: rotate(359deg);}
+          }
+          @keyframes rotation {
+            from {transform: rotate(0deg);}
+            to {transform: rotate(359deg);}
+          }
+          /* End: Spinner */
+
         </style>
       </head>
 
