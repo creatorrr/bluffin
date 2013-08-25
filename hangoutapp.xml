@@ -226,6 +226,18 @@
 
             // Init
             $(function(){
+              var setMaster;
+
+              // Function to set master (first player to join)
+              setMaster = function() {
+                var changes = {};
+
+                app.data.get('master') || changes.master = app.hangout.getLocalParticipantId();
+                app.data.set(changes) && _.extend(app.state, changes);
+
+                return app.state.master;
+              }
+
               // Initialize local player
               app.me = new Player();
               app.players = new Players()
@@ -278,6 +290,9 @@
                 app.hangout.on('participantsEnabled', function(participants) {
                   app.players.reset(participants);
                 });
+
+                // Set master
+                app.hangout.on('participantsChanged', _.once(setMaster));
 
                 // Do stuff here
 
