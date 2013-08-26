@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<Module>
+
+  <!-- Set preferences for app -->
+  <ModulePrefs title="Keep Bluffin">
+    <Require feature="rpc" />
+    <Require feature="views" />
+    <Require feature="locked-domain" />
+  </ModulePrefs>
+
+  <!-- Begin app logic -->
+  <Content type="html">
+    <![CDATA[
+    <html>
+      <head>
+        <script src="//plus.google.com/hangouts/_/api/v1/hangout.js"></script>
+        <script src="//cdnjs.cloudflare.com/ajax/libs/thorax/2.0.0rc6/thorax.js"></script>
+
+        <!-- App logic -->
+        <script type="text/javascript">
+          {{{ js }}}
+        </script>
+
+        <!-- Google fonts: 'Megrim', 'Bangers' -->
+        <link href='http://fonts.googleapis.com/css?family=Bangers|Megrim' rel='stylesheet' type='text/css'/>
+
+        <style type="text/css">
+          {{{ css }}}
+        </style>
+      </head>
+
+      <body>
+        <div id="container">
+        </div>
+      </body>
+
+    </html>
+    ]]>
+  </Content>
+
+</Module>
+

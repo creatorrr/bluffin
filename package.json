@@ -1,0 +1,23 @@
+{
+  "name": "keepbluffin",
+  "version": "0.0.0",
+  "description": "Bluff for google hangouts",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "devDependencies": {
+    "mustache": "*"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/creatorrr/bluffin.git"
+  },
+  "author": "Diwank Singh (diwank.singh@gmail.com)",
+  "license": "BSD",
+  "bugs": {
+    "url": "https://github.com/creatorrr/bluffin/issues"
+  },
+
+  "private": true
+}
