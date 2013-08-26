@@ -71,7 +71,7 @@
                 }
 
                 set: function(key, value) {
-                  if(Object(key) === key) {
+                  if(_.isObject(key)) {
                     for(var k in key) self.setValue( k, key[k] );
                     return true;
 
@@ -234,7 +234,7 @@
 
             // Init
             $(function(){
-              var setMaster;
+              var setMaster, setTurn, setPlayers, nextTurn;
 
               // Function to set master (first player to join)
               setMaster = function() {
@@ -244,6 +244,61 @@
                 app.data.set(changes) && _.extend(app.state, changes);
 
                 return app.state.master;
+              }
+
+              // Set turn
+              setTurn = function(player) {
+                var turn = { currentTurn: player.id };
+
+                app.data.set(turn);
+                app.trigger('send:message', player.id, { turn: true });
+
+                return turn;
+              }
+
+              // Set up players
+              setPlayers = function() {
+                var playerData, hands, length, i;
+
+                // Distribute deck
+                hands = app.deck.distribute(length = app.players.length);
+
+                // Go over each player and send them their hands
+                i = 0;
+                playerData = [];
+
+                app.players.each(function(player) {
+                  // Send hand
+                  app.trigger('send:message', player.id, { hand: hands[i] });
+
+                  // Get data
+                  playerData.push({
+                    id: player.id,
+                    cards: hands[i].length
+                  });
+
+                  // Check for turn
+                  if(!_.isEmpty(_.findWhere(hands[i], { rank: 'A', suit: 'spades' })))
+                    setTurn(player);
+
+                  // Incr
+                  i++;
+                });
+
+                // Persist player data
+                app.data.set('players', playerData) && app.state['players'] = playerData;
+                return playerData;
+              }
+
+              // Advance turn
+              nextTurn = function(last) {
+                var players = app.state['players'];
+
+                for(var i = 0; i < players.length; i++) {
+                  if(players[i].id == last.id) break;
+                }
+
+                return setTurn(last);
               }
 
               // Initialize local player
@@ -269,7 +324,7 @@
 
                 app.on('message:send', function(id, message) {
                   // Add metadata
-                  if(Object(message) === message) {
+                  if(_.isObject(message)) {
                     message.to = id;
                     message.from = app.me.id;
                   }
@@ -280,6 +335,16 @@
                 app.on('broadcast:send', function(message) {
                   app.data.sendMessage(JSON.stringify(message));
                 }
+
+                // Dispatch messages
+                app.on('message:received', function(message) {
+                  if(message.turn) {
+                    app.trigger('turn:play');
+
+                  } else if(message.hand) {
+                    app.trigger('hand:init', message.hand);
+                  }
+                });
 
                 // Auto update internal state
                 app.data.on('stateChanged', function(e) {
