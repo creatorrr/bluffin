@@ -20,8 +20,8 @@
         <!-- App logic -->
         <script type="text/javascript">
           // App module
-          (function($, _, Thorax, Backbone){
-          var app, Card, Deck, forwardEvents, rewriteDataInterface, rewriteSync, Players, Player;
+          (function($, _, Thorax, Backbone, Handlebars){
+          var app, forwardEvents, rewriteDataInterface, rewriteSync;
 
             // Tidy up the gapi events interface
             forwardEvents = function(self) {
@@ -31,7 +31,7 @@
                 return str[0].toUpperCase() + _.rest(str).join('');
               }
 
-              return {
+              return _.extend( self, {
                 on: function(name, fn) {
                   self['on'+capitalize(name)].add(fn);
                 },
@@ -39,14 +39,14 @@
                 off: function(name, fn) {
                   self['on'+capitalize(name)].remove(fn);
                 }
-              }
+              });
             }
 
             // Rewrite data interface
             rewriteDataInterface = function(self) {
               if(!self) self = this;
 
-              return {
+              return _.extend( self, {
                 clear: function(key) {
                   if(key !== void 0) {
                     // Simply forward function call
@@ -79,13 +79,17 @@
                     return self.getValue( key, value );
                   }
                 }
-              }
+              });
             }
 
             // App namespace
             app = _.extend({
-              hangout: _.extend(gapi.hangout, forwardEvents(gapi.hangout)),
-              data: _.extend(gapi.hangout.data, rewriteDataInterface(gapi.hangout.data)),
+              hangout: forwardEvents(gapi.hangout),
+              data: forwardEvents(rewriteDataInterface(gapi.hangout.data)),
+
+              models: {},
+              collections: {},
+              views: {},
 
               state: {}   // For storing app state
             }, Backbone.Events);
@@ -167,11 +171,11 @@
             })(Backbone, app.state);
 
             // Define a Card Model
-            Card = Thorax.Model.extend({});
+            app.models.Card = Thorax.Model.extend({});
 
             // Define Deck
-            Deck = Thorax.Collection.extend({
-              model: Card,
+            app.collections.Deck = Thorax.Collection.extend({
+              model: app.models.Card,
 
               // Distribute deck among players
               distribute: function(players) {
@@ -190,7 +194,7 @@
             });
 
             // Initialize a deck.
-            app.deck = new Deck();
+            app.deck = new app.collections.Deck();
             app.deck.add((function(){
               var i, j, suits, ranks, cards;
 
@@ -211,7 +215,7 @@
             })());
 
             // Define player model
-            Player = Throax.Model.extend({
+            app.models.Player = Throax.Model.extend({
               defaults: function(){
                 return {
                   addedAt: new Date().getTime()
@@ -223,12 +227,95 @@
               }
             });
 
-            Players = Thorax.Collection.extend({
-              model: Player,
+            app.collections.Players = Thorax.Collection.extend({
+              model: app.models.Player,
               comparator: function(player) { return player.get('addedAt'); },
 
               getMaster: function() {
                 return this.find(function(model) { return model.isMaster() });
+              }
+            });
+
+            // Define views
+            app.views.layout = Thorax.LayoutView;
+
+            app.views.card = Thorax.View.extend({
+              events: {
+                click: function() {
+                  // Return if deck covered
+                  if(this.parent && this.parent.covered) return;
+
+                  // Select cards
+                  this.$el.find('.card').toggleClass('selected');
+                  this.model.set('selected', !this.model.get('selected'));
+                }
+              },
+              template: Handlebars.compile("<div class=\"card suit{{ suit }}\"><p>{{ rank }}</p>")
+            });
+
+            app.views.deck = Thorax.Views.extend({
+              initialize: function() {
+                // List of card views grouped by rank
+                this.hands = {};
+              },
+
+              events: {
+                collection: {
+                  all: function(e) {
+                    var collection;
+
+                    // Get collection value
+                    switch(e) {
+                      case 'add':
+                      case 'remove':
+                        collection = arguments[2];  // (event, model, collection)
+                        break;
+
+                      case 'reset':
+                        collection = arguments[1];  // (event, collection)
+                        break;
+
+                      default: return;
+                    }
+
+                    this.setHands(collection);
+                    this.render();
+                  }
+                }
+              },
+
+              setHands: function(coll) {
+                var groupedHands = coll.groupBy('rank');
+
+                // Reset hands
+                _.each(_.flatten(_.pairs(this.hands)), function(view) { view.remove(); });
+                this.hands = {};
+
+                for(var rank in groupedHands) {
+                  this.hands[rank] = _.map(groupedHands[rank], function(model) {
+                    // Make view
+                    return new app.views.card({ model: model });
+                  });
+                }
+              },
+
+              template: Handlebars.compile(
+                "<div class=\"hand-container\">"+
+                  "{{#each hands}}"+
+                    "<div class=\"hand spread {{#if covered}}covered{{/if}}\">"+
+                      "{{#each this}}"+
+                        "{{view this}}"+
+                      "{{/each}}"+
+                    "</div>"+
+                  "{{/each}}"+
+                "</div>"
+              )
+            });
+
+            app.views.coveredDeck = app.views.deck.extend({
+              covered: true,
+              showLastHand: function() {
+                this.$el.find('.covered:last').removeClass('covered');
               }
             });
 
@@ -368,12 +455,15 @@
                 setMaster();
                 app.hangout.on('participantsChanged', _.once(setMaster));
 
-                // Do stuff here
+                app.hangout.on('appVisible', function() {
 
+                  // Do stuff here
+
+                });
               });
             });
 
-          }).call(this, jQuery, _, Thorax, Backbone);
+          }).call(this, jQuery, _, Thorax, Backbone, Handlebars);
         </script>
 
         <!-- Google fonts: 'Megrim', 'Bangers' -->
@@ -383,6 +473,7 @@
           * {margin: 0; padding: 0;}
 
           body {
+            font-family: 'Megrim', cursive;
             background: #00a651;
           }
 
@@ -605,6 +696,8 @@
       </head>
 
       <body>
+        <div id="container">
+        </div>
       </body>
 
     </html>
