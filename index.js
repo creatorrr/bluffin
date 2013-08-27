@@ -2,6 +2,7 @@
 (function($, _, Thorax, Backbone, Handlebars){
 var app, forwardEvents, rewriteDataInterface, rewriteSync;
 
+  /*-- utils --*/
   // Tidy up the gapi events interface
   forwardEvents = function(self) {
     if(!self) self = this;
@@ -60,8 +61,10 @@ var app, forwardEvents, rewriteDataInterface, rewriteSync;
       }
     });
   };
+  /*--/ utils --*/
 
-  // App namespace
+  /*-- namespace --*/
+  // Global app object
   app = _.extend({
     hangout: forwardEvents(gapi.hangout),
     data: forwardEvents(rewriteDataInterface(gapi.hangout.data)),
@@ -70,7 +73,7 @@ var app, forwardEvents, rewriteDataInterface, rewriteSync;
     collections: {},
     views: {},
 
-    state: {}   // For storing app state
+    state: {}   // For storing shared app state
   }, Backbone.Events);
 
   // Rewrite Backbone Sync
@@ -150,7 +153,9 @@ var app, forwardEvents, rewriteDataInterface, rewriteSync;
       return resp || errorMessage;
     };
   })(Backbone, app.state);
+  /*--/ namespace --*/
 
+  /*-- models --*/
   // Define a Card Model
   app.models.Card = Thorax.Model.extend({});
 
@@ -176,6 +181,8 @@ var app, forwardEvents, rewriteDataInterface, rewriteSync;
 
   // Initialize a deck.
   app.deck = new app.collections.Deck();
+
+  // Add cards to deck
   app.deck.add((function(){
     var i, j, suits, ranks, cards;
 
@@ -209,6 +216,7 @@ var app, forwardEvents, rewriteDataInterface, rewriteSync;
     }
   });
 
+  // Define players collection
   app.collections.Players = Thorax.Collection.extend({
     model: app.models.Player,
     comparator: function(player) { return player.get('addedAt'); },
@@ -218,9 +226,15 @@ var app, forwardEvents, rewriteDataInterface, rewriteSync;
     }
   });
 
-  // Define views
+  // Define notification model
+  app.models.notification = Thorax.Model.extend({});
+  /*--/ models --*/
+
+  /*-- views --*/
+  // Define layout view
   app.views.layout = Thorax.LayoutView;
 
+  // Define card view
   app.views.card = Thorax.View.extend({
     events: {
       click: function() {
@@ -235,6 +249,7 @@ var app, forwardEvents, rewriteDataInterface, rewriteSync;
     template: Handlebars.compile("<div class=\"card suit{{ suit }}\"><p>{{ rank }}</p>")
   });
 
+  // Define deck view
   app.views.deck = Thorax.Views.extend({
     initialize: function() {
       // List of card views grouped by rank
@@ -295,6 +310,7 @@ var app, forwardEvents, rewriteDataInterface, rewriteSync;
     )
   });
 
+  // Define view for "covered" deck, for the round.
   app.views.coveredDeck = app.views.deck.extend({
     covered: true,
     showLastHand: function() {
@@ -302,19 +318,66 @@ var app, forwardEvents, rewriteDataInterface, rewriteSync;
     }
   });
 
+  // Define notification view which disappears after some time
+  app.views.notification = Thorax.View.extend({
+    _defaultExpiration: 8 * 1000, // 8 seconds
+
+    events: {
+      model: {
+        change: function() {
+          // Hide after expiration time.
+          _.delay(this.hide, this.model.expiration || this._defaultExpiration);
+
+          // Render notification and display it.
+          this.render();
+          this.show();
+        },
+      },
+    },
+
+    hide: function() { this.$el.hide(); },
+    show: function() { this.$el.show(); },
+
+    template: Handlebars.compile(
+      '<div class="notification">'+
+        '<span>{{ message }}</span>'+
+      '</div>'
+    ),
+  });
+
+  // Define ending screen view
+  app.views.gameEnd = Thorax.View.extend({
+    events: {
+      'click a[data-action="restartGame"]': function() {
+        app.trigger('game:start');
+      },
+    },
+    template: Handlebars.compile(
+      "<div class=\"results\">"+
+        "<h2>{{ person.displayName }} has won!</h2>"+
+        "<a data-action=\"restartGame\">Play another game</a>"+
+      "</div>"
+    ),
+  });
+
+  /*--/ views --*/
+
   // Init
   $(function(){
     var setMaster, setTurn, setPlayers, nextTurn;
 
     // Function to set master (first player to join)
     setMaster = function() {
-      var changes = {};
+      var master;
 
-      if(!app.data.get('master')) changes.master = app.hangout.getLocalParticipantId();
-      app.data.set(changes);
-      _.extend(app.state, changes);
+      if(!app.data.get('master')) {
+        master = app.hangout.getLocalParticipantId();
 
-      return app.state.master;
+        app.data.set({ master: master });
+        app.state['master'] = master;
+      }
+
+      return app.state['master'];
     };
 
     // Set turn
