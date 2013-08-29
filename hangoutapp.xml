@@ -539,14 +539,14 @@ var app, forwardEvents, rewriteDataInterface, rewriteSync;
 
         </script>
 
-        <!-- Google fonts: 'Megrim', 'Bangers' -->
-        <link href='http://fonts.googleapis.com/css?family=Bangers|Megrim' rel='stylesheet' type='text/css'/>
+        <!-- Google fonts: 'Megrim', 'Bangers', 'Cabin' -->
+        <link href='http://fonts.googleapis.com/css?family=Bangers|Megrim|Cabin' rel='stylesheet' type='text/css'/>
 
         <style type="text/css">
           * {margin: 0; padding: 0;}
 
 body {
-  font-family: 'Megrim', cursive;
+  font-family: 'Cabin', sans-serif;
   background: #00a651;
 }
 
@@ -575,6 +575,7 @@ body {
 }
 
 .card p {
+  font-family: 'Megrim' cursive;
   text-align: center;
   text-transform: capitalize;
   color: black;

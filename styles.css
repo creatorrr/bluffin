@@ -1,7 +1,7 @@
 * {margin: 0; padding: 0;}
 
 body {
-  font-family: 'Megrim', cursive;
+  font-family: 'Cabin', sans-serif;
   background: #00a651;
 }
 
@@ -30,6 +30,7 @@ body {
 }
 
 .card p {
+  font-family: 'Megrim' cursive;
   text-align: center;
   text-transform: capitalize;
   color: black;
