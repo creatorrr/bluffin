@@ -554,8 +554,12 @@ var app, forwardEvents, rewriteDataInterface, rewriteSync;
       setMaster();
       app.hangout.on('participantsChanged', _.once(setMaster));
 
+      // Attach layout view to body
+      app.layout = new app.views.layout();
+      app.layout.appendTo('#container');
+
       app.hangout.on('appVisible', function() {
-        var notificationView, deckView;
+        var notificationView;
 
         // Initialize notification container
         notificationView = new app.views.notification({
@@ -571,8 +575,7 @@ var app, forwardEvents, rewriteDataInterface, rewriteSync;
         // Do stuff here
 
         // Testing
-        deckView = new app.views.deck({ collection: app.deck });
-        deckView.appendTo('body');
+        app.layout.setView(new app.views.gameStart({model: app.me}));
 
       });
     });
