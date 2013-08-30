@@ -254,6 +254,7 @@ var app, forwardEvents, rewriteDataInterface, rewriteSync;
     initialize: function() {
       // List of card views grouped by rank
       this.hands = {};
+      this.setHands();
     },
 
     events: {
@@ -320,7 +321,7 @@ var app, forwardEvents, rewriteDataInterface, rewriteSync;
 
   // Define notification view which disappears after some time
   app.views.notification = Thorax.View.extend({
-    _defaultExpiration: 8 * 1000, // 8 seconds
+    _defaultExpiration: 4 * 1000, // 4 seconds
 
     events: {
       model: {
@@ -347,18 +348,35 @@ var app, forwardEvents, rewriteDataInterface, rewriteSync;
 
   // Define starting screen
   app.views.gameStart = Thorax.View.extend({
-    initialize: function() {
-      // Add isMaster predicate
-      this.isMaster = this.model instanceof this.models.Player && this.model.isMaster();
+    // Add isMaster predicate
+    isMaster: function() {
+      return this.model instanceof this.models.Player && this.model.isMaster();
+    },
+    events: {
+      'click a[data-action="startGame"]': function() {
+        app.trigger('game:start');
+      },
     },
     template: Handlebars.compile(
       "<div class=\"welcome\">"+
+        "<span>Howdy, {{ person.displayName }}!</span>"+
+        "<div>"+
+          "{{#if isMaster }}"+
+            "<a data-action=\"startGame\">Start game</a>"+
+          "{{else}}"+
+            "<span>Waiting for players to join...</span>"+
+          "{{/if}}"+
+        "</div<"+
       "</div>"
     ),
   });
 
   // Define ending screen view
   app.views.gameEnd = Thorax.View.extend({
+    // Add isMaster predicate
+    isMaster: function() {
+      return this.model instanceof this.models.Player && this.model.isMaster();
+    },
     events: {
       'click a[data-action="restartGame"]': function() {
         app.trigger('game:start');
@@ -367,7 +385,9 @@ var app, forwardEvents, rewriteDataInterface, rewriteSync;
     template: Handlebars.compile(
       "<div class=\"results\">"+
         "<h2>{{ person.displayName }} has won!</h2>"+
-        "<a data-action=\"restartGame\">Play another game</a>"+
+        "{{#if isMaster}}"+
+          "<a data-action=\"restartGame\">Play another game</a>"+
+        "{{/if}}"+
       "</div>"
     ),
   });
@@ -535,7 +555,7 @@ var app, forwardEvents, rewriteDataInterface, rewriteSync;
       app.hangout.on('participantsChanged', _.once(setMaster));
 
       app.hangout.on('appVisible', function() {
-        var notificationView;
+        var notificationView, deckView;
 
         // Initialize notification container
         notificationView = new app.views.notification({
@@ -551,7 +571,8 @@ var app, forwardEvents, rewriteDataInterface, rewriteSync;
         // Do stuff here
 
         // Testing
-        $('body').css('background-color', 'red');
+        deckView = new app.views.deck({ collection: app.deck });
+        deckView.appendTo('body');
 
       });
     });
