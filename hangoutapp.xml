@@ -275,7 +275,7 @@ var app, forwardEvents, rewriteDataInterface, rewriteSync;
     initialize: function() {
       // List of card views grouped by rank
       this.hands = {};
-      this.setHands();
+      this.setHands(this.collection);
     },
 
     events: {
