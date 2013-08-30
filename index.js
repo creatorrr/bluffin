@@ -350,7 +350,7 @@ var app, forwardEvents, rewriteDataInterface, rewriteSync;
   app.views.gameStart = Thorax.View.extend({
     // Add isMaster predicate
     isMaster: function() {
-      return this.model instanceof this.models.Player && this.model.isMaster();
+      return this.model instanceof app.models.Player && this.model.isMaster();
     },
     events: {
       'click a[data-action="startGame"]': function() {
@@ -375,7 +375,7 @@ var app, forwardEvents, rewriteDataInterface, rewriteSync;
   app.views.gameEnd = Thorax.View.extend({
     // Add isMaster predicate
     isMaster: function() {
-      return this.model instanceof this.models.Player && this.model.isMaster();
+      return this.model instanceof app.models.Player && this.model.isMaster();
     },
     events: {
       'click a[data-action="restartGame"]': function() {
