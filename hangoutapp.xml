@@ -214,7 +214,7 @@ var app, forwardEvents, rewriteDataInterface, rewriteSync;
 
     // Add all 52 cards
     for (i = 0; i < suits.length; i++)
-      for (j = 0; i < ranks.length; j++)
+      for (j = 0; j < ranks.length; j++)
         cards.push({
           rank: ranks[j],
           suit: suits[i]
@@ -224,7 +224,7 @@ var app, forwardEvents, rewriteDataInterface, rewriteSync;
   })());
 
   // Define player model
-  app.models.Player = Throax.Model.extend({
+  app.models.Player = Thorax.Model.extend({
     defaults: function(){
       return {
         addedAt: new Date().getTime()
@@ -271,7 +271,7 @@ var app, forwardEvents, rewriteDataInterface, rewriteSync;
   });
 
   // Define deck view
-  app.views.deck = Thorax.Views.extend({
+  app.views.deck = Thorax.View.extend({
     initialize: function() {
       // List of card views grouped by rank
       this.hands = {};
@@ -367,7 +367,7 @@ var app, forwardEvents, rewriteDataInterface, rewriteSync;
   });
 
   // Define starting screen
-  app.views.gameStart = Thorax.views.extend({
+  app.views.gameStart = Thorax.View.extend({
     initialize: function() {
       // Add isMaster predicate
       this.isMaster = this.model instanceof this.models.Player && this.model.isMaster();
@@ -471,8 +471,8 @@ var app, forwardEvents, rewriteDataInterface, rewriteSync;
     };
 
     // Initialize local player
-    app.me = new Player();
-    app.players = new Players();
+    app.me = new app.models.Player();
+    app.players = new app.collections.Players();
 
     // Set up app
     app.hangout.on('apiReady', function(){
@@ -559,16 +559,14 @@ var app, forwardEvents, rewriteDataInterface, rewriteSync;
         var notificationView;
 
         // Initialize notification container
-        notificationView = new app.viewss.notification({
+        notificationView = new app.views.notification({
           model: new app.models.Notification()
         });
         notificationView.appendTo('body');
 
         // Listen for new notifications
-        notificationView.once(function() {
-          app.on('notification:received', function(notification) {
-            notificationView.model.set(notification);
-          });
+        app.on('notification:received', function(notification) {
+          notificationView.model.set(notification);
         });
 
         // Do stuff here
