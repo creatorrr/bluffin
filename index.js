@@ -227,7 +227,7 @@ var app, forwardEvents, rewriteDataInterface, rewriteSync;
   });
 
   // Define notification model
-  app.models.notification = Thorax.Model.extend({});
+  app.models.Notification = Thorax.Model.extend({});
   /*--/ models --*/
 
   /*-- views --*/
@@ -345,6 +345,18 @@ var app, forwardEvents, rewriteDataInterface, rewriteSync;
     ),
   });
 
+  // Define starting screen
+  app.views.gameStart = Thorax.views.extend({
+    initialize: function() {
+      // Add isMaster predicate
+      this.isMaster = this.model instanceof this.models.Player && this.model.isMaster();
+    },
+    template: Handlebars.compile(
+      "<div class=\"welcome\">"+
+      "</div>"
+    ),
+  });
+
   // Define ending screen view
   app.views.gameEnd = Thorax.View.extend({
     events: {
@@ -434,7 +446,7 @@ var app, forwardEvents, rewriteDataInterface, rewriteSync;
         if(players[i].id == last.id) break;
       }
 
-      return setTurn(last);
+      return setTurn(players[i]);
     };
 
     // Initialize local player
@@ -474,6 +486,19 @@ var app, forwardEvents, rewriteDataInterface, rewriteSync;
         app.data.sendMessage(JSON.stringify(message));
       });
 
+      app.on('notification:send', function(message, expiration) {
+        var msg = {
+          notification: {
+            message: message
+          }
+        };
+
+        if(expiration) msg.notification.expiration = expiration;
+
+        // Send it off
+        app.trigger('broadcast:send', msg);
+      });
+
       // Dispatch messages
       app.on('message:received', function(message) {
         if(message.turn) {
@@ -481,6 +506,9 @@ var app, forwardEvents, rewriteDataInterface, rewriteSync;
 
         } else if(message.hand) {
           app.trigger('hand:init', message.hand);
+
+        } else if(message.notification) {
+          app.trigger('notification:received', message.notification);
         }
       });
 
@@ -507,8 +535,25 @@ var app, forwardEvents, rewriteDataInterface, rewriteSync;
       app.hangout.on('participantsChanged', _.once(setMaster));
 
       app.hangout.on('appVisible', function() {
+        var notificationView;
+
+        // Initialize notification container
+        notificationView = new app.viewss.notification({
+          model: new app.models.Notification()
+        });
+        notificationView.appendTo('body');
+
+        // Listen for new notifications
+        notificationView.once(function() {
+          app.on('notification:received', function(notification) {
+            notificationView.model.set(notification);
+          });
+        });
 
         // Do stuff here
+
+        // Testing
+        $('body').css('background-color', 'red');
 
       });
     });
