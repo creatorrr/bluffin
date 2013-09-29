@@ -570,7 +570,7 @@ var app, forwardEvents, rewriteDataInterface, rewriteSync;
           app.on('all', function() {
             var child, args;
 
-            child = this.getView();
+            child = that.getView();
             args = [].slice.call(arguments, 0);
 
             child.trigger.apply(child, args);
