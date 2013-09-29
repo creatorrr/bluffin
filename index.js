@@ -573,7 +573,7 @@ var app, forwardEvents, rewriteDataInterface, rewriteSync;
             child = that.getView();
             args = [].slice.call(arguments, 0);
 
-            child.trigger.apply(child, args);
+            child && child.trigger.apply(child, args);
           });
         },
       });
