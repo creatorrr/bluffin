@@ -197,6 +197,11 @@ var app, forwardEvents, rewriteDataInterface, rewriteSync;
         sets.push(shuffled.slice(i, i + slice));
 
       return sets;
+    },
+
+    // Sync entire collection
+    save: function(options) {
+      return Backbone.sync('update', this, options);
     }
   });
 
@@ -253,7 +258,7 @@ var app, forwardEvents, rewriteDataInterface, rewriteSync;
 
   /*-- views --*/
   // Define layout view
-  app.views.layout = Thorax.LayoutView;
+  app.views.layout = Thorax.LayoutView.extend({});
 
   // Define card view
   app.views.card = Thorax.View.extend({
@@ -281,17 +286,19 @@ var app, forwardEvents, rewriteDataInterface, rewriteSync;
     events: {
       collection: {
         all: function(e) {
-          var collection;
+          var collection, args;
+
+          args = [].slice.call(arguments, 0);
 
           // Get collection value
           switch(e) {
             case 'add':
             case 'remove':
-              collection = arguments[2];  // (event, model, collection)
+              collection = args[2];  // (event, model, collection)
               break;
 
             case 'reset':
-              collection = arguments[1];  // (event, collection)
+              collection = args[1];  // (event, collection)
               break;
 
             default: return;
@@ -576,7 +583,22 @@ var app, forwardEvents, rewriteDataInterface, rewriteSync;
       app.hangout.on('participantsChanged', _.once(setMaster));
 
       // Attach layout view to body
-      app.layout = new app.views.layout();
+      app.layout = new app.views.layout({
+        initialize: function() {
+          var that = this;
+
+          // Bubble app events on active views
+          app.on('all', function() {
+            var child, args;
+
+            child = this.getView();
+            args = [].slice.call(arguments, 0);
+
+            child.trigger.apply(child, args);
+          });
+        },
+      });
+
       app.layout.appendTo('#container');
 
       app.hangout.on('appVisible', function() {
