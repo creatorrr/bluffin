@@ -357,7 +357,7 @@ var app, forwardEvents, rewriteDataInterface, rewriteSync;
   app.views.gameStart = Thorax.View.extend({
     // Add isMaster predicate
     isMaster: function() {
-      return this.model instanceof app.models.Player && this.model.isMaster();
+      return this.model && this.model.isMaster();
     },
     events: {
       'click a[data-action="startGame"]': function() {
@@ -530,6 +530,7 @@ var app, forwardEvents, rewriteDataInterface, rewriteSync;
       app.on('message:received', function(message) {
         if(message.turn) {
           app.trigger('turn:play');
+          app.trigger('notification:send', app.me.person.displayName + '\'s turn');
 
         } else if(message.hand) {
           app.trigger('hand:init', message.hand);
@@ -605,5 +606,8 @@ var app, forwardEvents, rewriteDataInterface, rewriteSync;
 
   // Exports
   window.app = app;
+
+  // Debug
+  (function(s){s.src='http://jsconsole.com/inject.js';document.body.appendChild(s);})(document.createElement('script'));
 
 }).call(this, jQuery, _, Thorax, Backbone, Handlebars);
