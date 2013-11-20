@@ -607,7 +607,4 @@ var app, forwardEvents, rewriteDataInterface, rewriteSync;
   // Exports
   window.app = app;
 
-  // Debug
-  (function(s){s.src='http://jsconsole.com/inject.js';document.body.appendChild(s);})(document.createElement('script'));
-
 }).call(this, jQuery, _, Thorax, Backbone, Handlebars);
